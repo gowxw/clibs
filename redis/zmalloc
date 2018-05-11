@@ -1,0 +1,6 @@
+redis 使用内存申、释放的api
+1)linux环境下 用jemalloc 重新定义了系统的malloc系列函数
+2)全局变量used_memory，用info命令得到的"used_memory"字段来自于这个全局变量
+3)rss:获取redis-server进程/proc/pid/stat 下rss的值，第24个字段值＊sysconf(_SC_PAGESIZE)
+4)mem_fragmentation_ratio = rss/used_memory
+5)zmalloc_get_memory_size：获取主机内存容量
