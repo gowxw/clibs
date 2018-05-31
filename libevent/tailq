@@ -1,2 +1,8 @@
+macros in:
+/usr/lib/include/sys/queue.h
+
+tailq 的基本操作
+http://blog.csdn.net/chen98765432101/article/details/56511598
+
 关于TAILQ链表节点删除问题
 http://www.cnblogs.com/chenyuejun/p/3867846.html
