@@ -1,0 +1,21 @@
+explanation in src code:
+/* Common timeouts are special timeouts that are handled as queues rather than
+ * in the minheap.  This is more efficient than the minheap if we happen to
+ * know that we're going to get several thousands of timeout events all with
+ * the same timeout value.
+ *
+ * Since all our timeout handling code assumes timevals can be copied,
+ * assigned, etc, we can't use "magic pointer" to encode these common
+ * timeouts.  Searching through a list to see if every timeout is common could
+ * also get inefficient.  Instead, we take advantage of the fact that tv_usec
+ * is 32 bits long, but only uses 20 of those bits (since it can never be over
+ * 999999.)  We use the top bits to encode 4 bites of magic number, and 8 bits
+ * of index into the event_base's aray of common timeouts.
+ */
+
+32bit usec:
+1)low 20bits: usec for struct timeval
+2)up  4bits : magic indicate the event is common_timeout
+3)middle 8bit:indate queue idx in the common_timeout queues,max is 256 
+
+

@@ -1,0 +1,19 @@
+struct event:
+1)struct evsig_info:
+  1)evutil_socket_t ev_signal_pair[2]: socket_pair
+
+
+
+
+
+
+
+signal event:
+evsignal_new--->event_new--->event_assign
+1): event type:     EV_SIGNAL|EV_PERSIST
+2): event callback: signal callback
+3): event fd:       signal no(such as SIGINT)
+
+
+创建event管理器
+event_base_new
