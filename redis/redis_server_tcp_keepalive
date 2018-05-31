@@ -1,0 +1,15 @@
+客户端为10.1.3.100
+服务端为10.1.4.182
+
+修改redis.conf中两个参数
+1）将服务端口改为36379
+2）tcp-keepalive 改为 10
+
+
+正常情况下tcpdump抓到tcp keepalive的报文: tcp_keepalive.pcap
+
+如果客户端突然power-off，在server端抓到的tcp keepalive的报文:tcp_keepalive_client_crash.pcap
+可以看到，最后时刻，服务端10.1.4.182发送了三个tcp keepalive后，没有响应，最后发送了rst报文
+
+
+
