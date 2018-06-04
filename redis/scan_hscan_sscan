@@ -1,0 +1,8 @@
+https://blog.csdn.net/gqtcgq/article/details/50533336
+介绍了渐进式scan的基本算法原理
+
+db.c 中scanGenericCommand函数是scan各种类型的key的实现
+
+渐进式体现在：
+1）每次scan，限制最多scan key的个数count（或者20个，scan的key类型不同，个数不同）
+2）每次scan迭代的次数有限制，即使没有达到count，也要循环一定次数后break
