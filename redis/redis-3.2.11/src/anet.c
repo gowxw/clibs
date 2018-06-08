@@ -534,7 +534,7 @@ static int anetGenericAccept(char *err, int s, struct sockaddr *sa, socklen_t *l
             if (errno == EINTR)
                 continue;
             else {
-                anetSetError(err, "accept: %s", strerror(errno));
+                anetSetError(err, "accept: %s", strerror(errno));//接收来自客户端的connect，此时可能产生EAGAIN或EWOULDBLOCK 的errno，外层函数有判断，这种类型的errno不关心，表示没有排队等待接收client
                 return ANET_ERR;
             }
         }
@@ -547,7 +547,8 @@ int anetTcpAccept(char *err, int s, char *ip, size_t ip_len, int *port) {
     int fd;
     struct sockaddr_storage sa;
     socklen_t salen = sizeof(sa);
-    if ((fd = anetGenericAccept(err,s,(struct sockaddr*)&sa,&salen)) == -1)
+    if ((fd = anetGenericAccept(err,s,(struct sockaddr*)&sa,&salen)) == -1)//linsten socket 是 非阻塞的，这时候如果connect的数量没有达到
+                                                                           //MAX_CLUSTER_ACCEPTS_PER_CALL，就返回到上层函数acceptTcpHandler
         return ANET_ERR;
 
     if (sa.ss_family == AF_INET) {

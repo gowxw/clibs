@@ -299,7 +299,7 @@ int dictRehashMilliseconds(dict *d, int ms) {
     long long start = timeInMilliseconds();
     int rehashes = 0;
 
-    while(dictRehash(d,100)) {
+    while(dictRehash(d,100)) {//wxw rehash return 1:need to rehash further steps,return 0 rehash finish this time
         rehashes += 100;
         if (timeInMilliseconds()-start > ms) break;
     }
@@ -555,6 +555,8 @@ long long dictFingerprint(dict *d) {
     return hash;
 }
 
+
+//dictReleaseIterator and dictGetIterator (or dictGetSafeIterator)  are coupled apis, they are called first and secondly togther 
 dictIterator *dictGetIterator(dict *d)
 {
     dictIterator *iter = zmalloc(sizeof(*iter));
@@ -575,12 +577,12 @@ dictIterator *dictGetSafeIterator(dict *d) {
     return i;
 }
 
-dictEntry *dictNext(dictIterator *iter)
+dictEntry *dictNext(dictIterator *iter)//wxw iterover first ht[0] and then ht[1]
 {
     while (1) {
         if (iter->entry == NULL) {
             dictht *ht = &iter->d->ht[iter->table];
-            if (iter->index == -1 && iter->table == 0) {
+            if (iter->index == -1 && iter->table == 0) {//wxw first iteration
                 if (iter->safe)
                     iter->d->iterators++;
                 else
@@ -623,6 +625,7 @@ void dictReleaseIterator(dictIterator *iter)
 
 /* Return a random entry from the hash table. Useful to
  * implement randomized algorithms */
+//wxw first get random bucket,then get an random entry from the bucket
 dictEntry *dictGetRandomKey(dict *d)
 {
     dictEntry *he, *orighe;

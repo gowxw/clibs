@@ -690,7 +690,7 @@ void acceptTcpHandler(aeEventLoop *el, int fd, void *privdata, int mask) {
     UNUSED(mask);
     UNUSED(privdata);
 
-    while(max--) {
+    while(max--) {//一个loop最多接收1000个客户端的请求
         cfd = anetTcpAccept(server.neterr, fd, cip, sizeof(cip), &cport);
         if (cfd == ANET_ERR) {
             if (errno != EWOULDBLOCK)
@@ -1145,7 +1145,7 @@ int processMultibulkBuffer(client *c) {
         /* We know for sure there is a whole line since newline != NULL,
          * so go ahead and find out the multi bulk length. */
         serverAssertWithInfo(c,NULL,c->querybuf[0] == '*');
-        ok = string2ll(c->querybuf+1,newline-(c->querybuf+1),&ll);
+        ok = string2ll(c->querybuf+1,newline-(c->querybuf+1),&ll);//wxw parse first line, determain how many parameters
         if (!ok || ll > 1024*1024) {
             addReplyError(c,"Protocol error: invalid multibulk length");
             setProtocolError(c,pos);
@@ -1262,7 +1262,7 @@ void processInputBuffer(client *c) {
     /* Keep processing while there is something in the input buffer */
     while(sdslen(c->querybuf)) {
         /* Return if clients are paused. */
-        if (!(c->flags & CLIENT_SLAVE) && clientsArePaused()) break;
+        if (!(c->flags & CLIENT_SLAVE) && clientsArePaused()) break; //wxw if paused ,block all clients except for slave-client
 
         /* Immediately abort if the client is in the middle of something. */
         if (c->flags & CLIENT_BLOCKED) break;
@@ -1331,17 +1331,17 @@ void readQueryFromClient(aeEventLoop *el, int fd, void *privdata, int mask) {
     qblen = sdslen(c->querybuf);
     if (c->querybuf_peak < qblen) c->querybuf_peak = qblen;
     c->querybuf = sdsMakeRoomFor(c->querybuf, readlen);
-    nread = read(fd, c->querybuf+qblen, readlen);
+    nread = read(fd, c->querybuf+qblen, readlen);//read client request to client->querybuf
     if (nread == -1) {
         if (errno == EAGAIN) {
             return;
         } else {
-            serverLog(LL_VERBOSE, "Reading from client: %s",strerror(errno));
+            serverLog(LL_VERBOSE, "Reading from client: %s",strerror(errno));//if client crash, tcpkeepalive timeout,errno 110 happen(Connection timed out)
             freeClient(c);
             return;
         }
     } else if (nread == 0) {
-        serverLog(LL_VERBOSE, "Client closed connection");
+        serverLog(LL_VERBOSE, "Client closed connection"); //client close normally, readevent is fired, and recv_len is 0,means client close socket gracefully
         freeClient(c);
         return;
     }

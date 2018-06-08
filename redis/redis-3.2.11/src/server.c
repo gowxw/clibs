@@ -2373,7 +2373,8 @@ int processCommand(client *c) {
 
     /* Now lookup the command and check ASAP about trivial error conditions
      * such as wrong arity, bad command name and so forth. */
-    c->cmd = c->lastcmd = lookupCommand(c->argv[0]->ptr);
+    c->cmd = c->lastcmd = lookupCommand(c->argv[0]->ptr);   //wxw commands arity could be positive or negative,positive means argc
+                                                            //must be equal to arity;negative means argc must not smaller than -arity
     if (!c->cmd) {
         flagTransaction(c);
         addReplyErrorFormat(c,"unknown command '%s'",
