@@ -1391,6 +1391,8 @@ void syncWithMaster(aeEventLoop *el, int fd, void *privdata, int mask) {
     UNUSED(el);
     UNUSED(privdata);
     UNUSED(mask);
+        
+        printf("mask = 0x%x state=%d\n",mask,server.repl_state);
 
     /* If this event fired after the user turned the instance into a master
      * with SLAVEOF NO ONE we must just return ASAP. */
@@ -1409,7 +1411,7 @@ void syncWithMaster(aeEventLoop *el, int fd, void *privdata, int mask) {
     }
 
     /* Send a PING to check the master is able to reply without errors. */
-    if (server.repl_state == REPL_STATE_CONNECTING) {
+    if (server.repl_state == REPL_STATE_CONNECTING) {//wxw 主从协商的状态机第一次进入这个分支，是socket connect后触发了writable事件，删除writable事件，只处理reable事件，用于读取主从协商各个阶段的报文
         serverLog(LL_NOTICE,"Non blocking connect for SYNC fired the event.");
         /* Delete the writable event so that the readable event remains
          * registered and we can wait for the PONG reply. */
@@ -1664,7 +1666,7 @@ int connectWithMaster(void) {
     }
 
     if (aeCreateFileEvent(server.el,fd,AE_READABLE|AE_WRITABLE,syncWithMaster,NULL) ==
-            AE_ERR)
+            AE_ERR)//wxw 连接master，由于使用的是非阻塞的connetct，设置监听事件为readable+writable，connect成功之后，会立即触发writable事件
     {
         close(fd);
         serverLog(LL_WARNING,"Can't create readable event for SYNC");
@@ -1673,7 +1675,7 @@ int connectWithMaster(void) {
 
     server.repl_transfer_lastio = server.unixtime;
     server.repl_transfer_s = fd;
-    server.repl_state = REPL_STATE_CONNECTING;
+    server.repl_state = REPL_STATE_CONNECTING;  //wxw 设置replication_state 为REPL_STATE_CONNECTING，当connect完成后，writable事件被触发，回调函数syncWithMaster 执行，进入 repl_state == REPL_STATE_CONNECTING的分支，开始进行主从协商的状态机
     return C_OK;
 }
 
