@@ -1,0 +1,16 @@
+redis 配置了主从，当主从之间的心跳线断了，双方都会依据这个时间来检查对方是否alive
+
+配置文件中的repl-timeout 默认60s
+master端repl-timeout没有收到slave的replconf，会从master端把这个socket关闭。
+在master端log会打出：Disconnecting timedout slave
+
+同样slave端在repl-timeout没有收到master的ping或者rdb文件传输，也会关闭socket
+在slave端log会打出：MASTER timeout: no data nor PING received...
+
+
+而当slave 是macos环境下，还没到触发repl-timeout，就发生ETIMEDOUT 的error，
+原因是slave 一直在发送repliconf ack，而slave与master之间连线断掉，socket会一直尝试重发报文，最后触发RST
+
+replication_master_down_macos.pcap  replication_master_down_linuxos.pcap  
+是在两个系统下的抓包，可以看到mac_os 与 linux 下的tcp重传算法不同。 
+
