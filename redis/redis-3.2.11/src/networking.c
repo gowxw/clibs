@@ -170,7 +170,7 @@ int prepareClientToWrite(client *c) {
     /* Schedule the client to write the output buffers to the socket only
      * if not already done (there were no pending writes already and the client
      * was yet not flagged), and, for slaves, if the slave can actually
-     * receive writes at this stage. */
+     * receive writes at this stage. *///wxw 如果slave的状态不是online，而是同步中，这时候在master操作的写操作，是不能同步到salve的，因为slave client的fd没有加入到clients_pending_write中，而是把待写入的操作缓存到client结构体的buf中。等到slave的状态达到SLAVE_STATE_ONLINE，再把该client加入到clients_pending_write链表中。而在server的beforeSleep函数处理这些待发送的数据
     if (!clientHasPendingReplies(c) &&
         !(c->flags & CLIENT_PENDING_WRITE) &&
         (c->replstate == REPL_STATE_NONE ||
@@ -1312,7 +1312,6 @@ void readQueryFromClient(aeEventLoop *el, int fd, void *privdata, int mask) {
     size_t qblen;
     UNUSED(el);
     UNUSED(mask);
-
     readlen = PROTO_IOBUF_LEN;
     /* If this is a multi bulk request, and we are processing a bulk reply
      * that is large enough, try to maximize the probability that the query
@@ -1336,7 +1335,10 @@ void readQueryFromClient(aeEventLoop *el, int fd, void *privdata, int mask) {
         if (errno == EAGAIN) {
             return;
         } else {
-            serverLog(LL_VERBOSE, "Reading from client: %s",strerror(errno));//if client crash, tcpkeepalive timeout,errno 110 happen(Connection timed out)
+                //1:if client crash, tcpkeepalive timeout,errno 110 happen(Connection timed out)
+                //2:if master-slave connection break,and replication-timeout not fired,here maybe fired with errno of ETIMEDOUT, mac_os ETIMEDOUT is very short not more than 1 minute,linux is long serval minutes, slave 如果是mac 系统，slave端会一直发送repliconf ack，一直没有收到tcp层的回应，会触发发送tcp重传，最后触发ETIMEDOUT；而linux系统这个默认值很长，会好几分钟，在这之前replication timeout（default 60s）会被触发，关闭了socket，不会走进这个分支
+                
+            serverLog(LL_VERBOSE, "Reading from client: %d,%s",errno,strerror(errno));
             freeClient(c);
             return;
         }

@@ -320,7 +320,7 @@ typedef long long mstime_t; /* millisecond time type. */
  * to start the next background saving in order to send updates to it. */
 #define SLAVE_STATE_WAIT_BGSAVE_START 6 /* We need to produce a new RDB file. */
 #define SLAVE_STATE_WAIT_BGSAVE_END 7 /* Waiting RDB file creation to finish. */
-#define SLAVE_STATE_SEND_BULK 8 /* Sending RDB file to slave. */
+#define SLAVE_STATE_SEND_BULK 8 /* Sending RDB file to slave. *///wxw only disk type has this state
 #define SLAVE_STATE_ONLINE 9 /* RDB file transmitted, sending just updates. */
 
 /* Slave capabilities. */
@@ -884,7 +884,7 @@ struct redisServer {
     client *cached_master; /* Cached master to be reused for PSYNC. */
     int repl_syncio_timeout; /* Timeout for synchronous I/O calls */
     int repl_state;          /* Replication status if the instance is a slave */
-    off_t repl_transfer_size; /* Size of RDB to read from master during sync. */
+    off_t repl_transfer_size; /* Size of RDB to read from master during sync. *///wxw only used by disk type
     off_t repl_transfer_read; /* Amount of RDB read from master during sync. */
     off_t repl_transfer_last_fsync_off; /* Offset when we fsync-ed last time. */
     int repl_transfer_s;     /* Slave -> Master SYNC socket */

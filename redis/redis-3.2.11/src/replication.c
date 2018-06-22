@@ -330,7 +330,7 @@ long long addReplyReplicationBacklog(client *c, long long offset) {
     serverLog(LL_DEBUG, "[PSYNC] Skipping: %lld", skip);
 
     /* Point j to the oldest byte, that is actaully our
-     * server.repl_backlog_off byte. */
+     * server.repl_backlog_off byte. *///wxw server.repl_backlog_histlen max value is repl_backlog_size,j==0 or (server.repl_backlog_idx%server.repl_backlog_size)
     j = (server.repl_backlog_idx +
         (server.repl_backlog_size-server.repl_backlog_histlen)) %
         server.repl_backlog_size;
@@ -343,7 +343,7 @@ long long addReplyReplicationBacklog(client *c, long long offset) {
      * split the reply in two parts if we are cross-boundary. */
     len = server.repl_backlog_histlen - skip;
     serverLog(LL_DEBUG, "[PSYNC] Reply total length: %lld", len);
-    while(len) {
+    while(len) {//wxw this loop run twice at most,if twice,first round: read the most right bytes of the circular buffer;second round: read the most left bytes
         long long thislen =
             ((server.repl_backlog_size - j) < len) ?
             (server.repl_backlog_size - j) : len;
@@ -548,7 +548,7 @@ int startBgsaveForReplication(int mincapa) {
             client *slave = ln->value;
 
             if (slave->replstate == SLAVE_STATE_WAIT_BGSAVE_START) {
-                    replicationSetupSlaveForFullResync(slave,
+                    replicationSetupSlaveForFullResync(slave,//wxw for disk type ,send +FULLRESYNC here
                             getPsyncInitialOffset());
             }
         }
@@ -993,7 +993,7 @@ void readSyncBulkPayload(aeEventLoop *el, int fd, void *privdata, int mask) {
      * form the server: when they match, we reached the end of the transfer. */
     static char eofmark[CONFIG_RUN_ID_SIZE];
     static char lastbytes[CONFIG_RUN_ID_SIZE];
-    static int usemark = 0;
+    static int usemark = 0;//wxw usemark=1: socket type; usemark=0:disktype
 
     /* If repl_transfer_size == -1 we still have to read the bulk length
      * from the master reply. */
@@ -1004,7 +1004,6 @@ void readSyncBulkPayload(aeEventLoop *el, int fd, void *privdata, int mask) {
                 strerror(errno));
             goto error;
         }
-
         if (buf[0] == '-') {
             serverLog(LL_WARNING,
                 "MASTER aborted replication with an error: %s",
@@ -1065,6 +1064,7 @@ void readSyncBulkPayload(aeEventLoop *el, int fd, void *privdata, int mask) {
         cancelReplicationHandshake();
         return;
     }
+        
     server.stat_net_input_bytes += nread;
 
     /* When a mark is used, we want to detect EOF asap in order to avoid
@@ -1104,8 +1104,9 @@ void readSyncBulkPayload(aeEventLoop *el, int fd, void *privdata, int mask) {
      * we may suffer a big delay as the memory buffers are copied into the
      * actual disk. */
     if (server.repl_transfer_read >=
-        server.repl_transfer_last_fsync_off + REPL_MAX_WRITTEN_BEFORE_FSYNC)
+        server.repl_transfer_last_fsync_off + REPL_MAX_WRITTEN_BEFORE_FSYNC)//wxw fsync every 8m
     {
+            printf("reached 8m server.repl_transfer_read=%llu\n",server.repl_transfer_read);
         off_t sync_size = server.repl_transfer_read -
                           server.repl_transfer_last_fsync_off;
         rdb_fsync_range(server.repl_transfer_fd,
@@ -1142,7 +1143,7 @@ void readSyncBulkPayload(aeEventLoop *el, int fd, void *privdata, int mask) {
         /* Final setup of the connected slave <- master link */
         zfree(server.repl_transfer_tmpfile);
         close(server.repl_transfer_fd);
-        replicationCreateMasterClient(server.repl_transfer_s);
+        replicationCreateMasterClient(server.repl_transfer_s);//wxw replicate complete,server.repl_transfer_s change from REPL_STATE_TRANSFER-->REPL_STATE_CONNECTED
         serverLog(LL_NOTICE, "MASTER <-> SLAVE sync: Finished with success");
         /* Restart the AOF subsystem now that we finished the sync. This
          * will trigger an AOF rewrite, and when done will start appending
@@ -1321,7 +1322,7 @@ int slaveTryPartialResynchronization(int fd, int read_reply) {
         return PSYNC_WAIT_REPLY;
     }
 
-    aeDeleteFileEvent(server.el,fd,AE_READABLE);
+    aeDeleteFileEvent(server.el,fd,AE_READABLE); //删除readable事件，这时的read注册函数是syncWithMaster，这时协商已经完成。需要同步rdb文件了
 
     if (!strncmp(reply,"+FULLRESYNC",11)) {
         char *runid = NULL, *offset = NULL;
@@ -1334,6 +1335,7 @@ int slaveTryPartialResynchronization(int fd, int read_reply) {
             offset = strchr(runid,' ');
             if (offset) offset++;
         }
+            printf("receive fullresync %s, %s\n",runid,offset);
         if (!runid || !offset || (offset-runid-1) != CONFIG_RUN_ID_SIZE) {
             serverLog(LL_WARNING,
                 "Master replied with wrong +FULLRESYNC syntax.");
@@ -1391,8 +1393,6 @@ void syncWithMaster(aeEventLoop *el, int fd, void *privdata, int mask) {
     UNUSED(el);
     UNUSED(privdata);
     UNUSED(mask);
-        
-        printf("mask = 0x%x state=%d\n",mask,server.repl_state);
 
     /* If this event fired after the user turned the instance into a master
      * with SLAVEOF NO ONE we must just return ASAP. */
@@ -1400,7 +1400,6 @@ void syncWithMaster(aeEventLoop *el, int fd, void *privdata, int mask) {
         close(fd);
         return;
     }
-
     /* Check for errors in the socket. */
     if (getsockopt(fd, SOL_SOCKET, SO_ERROR, &sockerr, &errlen) == -1)
         sockerr = errno;
@@ -1427,7 +1426,6 @@ void syncWithMaster(aeEventLoop *el, int fd, void *privdata, int mask) {
     /* Receive the PONG command. */
     if (server.repl_state == REPL_STATE_RECEIVE_PONG) {
         err = sendSynchronousCommand(SYNC_CMD_READ,fd,NULL);
-
         /* We accept only two replies as valid, a positive +PONG reply
          * (we just check for "+") or an authentication error.
          * Note that older versions of Redis replied with "operation not
@@ -1669,7 +1667,7 @@ int connectWithMaster(void) {
             AE_ERR)//wxw 连接master，由于使用的是非阻塞的connetct，设置监听事件为readable+writable，connect成功之后，会立即触发writable事件
     {
         close(fd);
-        serverLog(LL_WARNING,"Can't create readable event for SYNC");
+        serverLog(LL_WARNING,"Can't create readable event for SYNC errno=%d %s\n",errno,strerror(errno));
         return C_ERR;
     }
 
