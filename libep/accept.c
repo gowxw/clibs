@@ -93,10 +93,11 @@ void handleAccept(aeloop_t* mainloop,int lsfd,int mask,void *data){
     /*just print */
     printf("process %d accept client %s:%d\n",getpid(),inet_ntoa(client_addr.sin_addr),ntohs(client_addr.sin_port));
 
-    //don't need set client fd keepalive, inferited by listen fd
+    //don't need set client fd keepalive, inherited from listen fd
     //set_socket_fd_keepalive(client_fd,10);
     setSocketBlock(client_fd,1);
 
+    //sndbuf: inherited from listen fd
     //get_socket_fd_sndbuf(client_fd);
 
     add_socket_fd_event(mainloop,client_fd,AE_READABLE,1,handleUserData,NULL);
