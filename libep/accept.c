@@ -72,6 +72,10 @@ void handleAccept(aeloop_t* mainloop,int lsfd,int mask,void *data){
     int ret = -1;
     while (1)
     {
+        //惊群在理论上是一定存在的，但是在实际中不一定是必现的，尤其是单核机上，如果要使其必现，
+        //accept之前可以短暂sleep一段时间，让这个可读事件一直存在一段时间，这样就能唤醒所有进程，
+        //当然只有一个进程能accept成功，其他进程都返回 EAGIN
+        //usleep(10000); 
         client_fd = accept(lsfd,(struct sockaddr*)&client_addr,&len);
         //printf("process %d get client %d errno:%d errstring=%s\n", getpid(),client_fd,errno,strerror(errno));
         if (client_fd == -1){
