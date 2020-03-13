@@ -69,7 +69,7 @@ int create_epoll_loop(aeloop_t** loop, int configSize){
 }
 
 
-//flag 1: epollet 0:epoll level trige
+
 int addEvent(aeloop_t* mainloop, int fd, int mask, int flag){
     int newmask = 0;
     int op = 0;
@@ -80,17 +80,22 @@ int addEvent(aeloop_t* mainloop, int fd, int mask, int flag){
 
     ee.events = 0;
     if (newmask&AE_READABLE){
-        ee.events |= EPOLLIN|EPOLLRDHUP;
-        //ee.events |= EPOLLIN;
+        ee.events |= EPOLLIN;
     }
 
     if (newmask&AE_WRITABLE){
         ee.events |= EPOLLOUT;
     }
 
-    if (flag){
-        ee.events = ee.events | EPOLLET;
+    if (flag & AE_USE_EXCLUSIVE){
+        ee.events = ee.events | EPOLLEXCLUSIVE;
     }
+
+    if (flag & AE_USE_RDHUP){
+        ee.events = ee.events | EPOLLRDHUP | EPOLLET;
+    }
+
+
 
     ee.data.fd = fd;
     printf("add fd:%d envents:0x%x op=%s\n",fd,ee.events, (op==EPOLL_CTL_ADD)?"EPOLL_CTL_ADD":"EPOLL_CTL_MOD");
@@ -111,19 +116,24 @@ int delEvent(aeloop_t* mainloop, int fd, int mask, int flag){
 
     ee.events = 0;
     if (newmask&AE_READABLE){
-        ee.events |= EPOLLIN|EPOLLRDHUP;
-        //ee.events |= EPOLLIN;
+        ee.events |= EPOLLIN;
     }
     if (newmask&AE_WRITABLE){
         ee.events |= EPOLLOUT;
     }
 
+    if (flag & AE_USE_EXCLUSIVE){
+        ee.events = ee.events | EPOLLEXCLUSIVE;
+    }
+
+    if (flag & AE_USE_RDHUP){
+        ee.events = ee.events | EPOLLRDHUP | EPOLLET;
+    }
+
+
     ee.data.fd = fd;
 
-    if (newmask != AE_NONE){
-        if (flag){
-            ee.events = ee.events | EPOLLET;
-        }      
+    if (newmask != AE_NONE){      
         printf("del mod fd:%d envents:0x%x\n",fd,ee.events);
         ret = epoll_ctl(mainloop->ep, EPOLL_CTL_MOD, fd, &ee);
         if (ret<0){

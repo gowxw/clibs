@@ -14,8 +14,8 @@ char *tmpbuf = NULL;
 
 void freeClient(aeloop_t* mainloop, int fd){
     int ret=-1;
-    (void)del_socket_fd_event(mainloop,fd,AE_READABLE,1);
-    (void)del_socket_fd_event(mainloop,fd,AE_WRITABLE,1);
+    (void)del_socket_fd_event(mainloop,fd,AE_READABLE,AE_USE_RDHUP);
+    (void)del_socket_fd_event(mainloop,fd,AE_WRITABLE,AE_USE_RDHUP);
     ret = close(fd);
     if (ret <0 ){
         printf("close fd error %d %s",errno,strerror(errno));
@@ -104,7 +104,7 @@ void handleAccept(aeloop_t* mainloop,int lsfd,int mask,void *data){
     //sndbuf: inherited from listen fd
     //get_socket_fd_sndbuf(client_fd);
 
-    add_socket_fd_event(mainloop,client_fd,AE_READABLE,1,handleUserData,NULL);
+    add_socket_fd_event(mainloop,client_fd,AE_READABLE,AE_USE_RDHUP,handleUserData,NULL);
     
     //add_socket_fd_event(mainloop,client_fd,AE_WRITABLE,1,writeToUserData,NULL);
     
@@ -113,7 +113,7 @@ void handleAccept(aeloop_t* mainloop,int lsfd,int mask,void *data){
 int add_accept_handle(aeloop_t* mainloop, int lsfd, 
                         aeEventProc *handleAccept,
                         void *data){
-    return add_socket_fd_event(mainloop,lsfd,AE_READABLE,0,handleAccept,data);
+    return add_socket_fd_event(mainloop,lsfd,AE_READABLE,AE_USE_EXCLUSIVE ,handleAccept,data);
 }
 
 

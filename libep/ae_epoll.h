@@ -3,6 +3,9 @@
 #define AE_READABLE 1
 #define AE_WRITABLE 2
 
+#define AE_USE_RDHUP     1
+#define AE_USE_EXCLUSIVE 2
+
 typedef void aeEventProc(struct aeloop_t* mainloop, int fd, int mask, void*data);
 
 typedef struct aeEvents_s {
