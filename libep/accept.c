@@ -86,7 +86,12 @@ void handleAccept(aeloop_t* mainloop,int lsfd,int mask,void *data){
                 /*产生原因：epoll 惊群: 多个进程 epoll_wait listen_fd时，
                  有新的tcp链接过来时，可能会唤醒多个进程，但是只有一个进程会正确的accept新的链接，
                  其余的进程会产生错误.
-                 EPOLLEXCLUSIVE 会解决该问题? */
+                 EPOLLEXCLUSIVE 会解决该问题? 
+                 
+                 设置了EPOLLEXCLUSIVE 时，的确没有再发送epoll_wait惊群了，
+                 与 man epoll_ctl 的描述一致
+                 */
+
                 printf("pid %d: accept errno = %d:%s\n",getpid(),errno,strerror(errno));
                 return;
             }
@@ -113,6 +118,8 @@ void handleAccept(aeloop_t* mainloop,int lsfd,int mask,void *data){
 int add_accept_handle(aeloop_t* mainloop, int lsfd, 
                         aeEventProc *handleAccept,
                         void *data){
+    /*EPOLLEXCLUSIVE和EPOLLRDHUP不能同时设置，同时设置的时候epoll_ctl会产生错误，
+    nginx 添加accept事件时也做了类似的互斥处理 */
     return add_socket_fd_event(mainloop,lsfd,AE_READABLE,AE_USE_EXCLUSIVE ,handleAccept,data);
 }
 
